@@ -10,8 +10,8 @@
 const unzipper = require('unzipper'),
   fs = require('fs'),
   PNG = require('pngjs').PNG,
-  path = require('path'),
-  stream = require('stream');
+  path = require('path')
+  sanitize = require('sanitize-filename');
 
 /**
  * Description: decompress file from given pathIn, write to given pathOut
@@ -30,13 +30,19 @@ const unzip = (pathIn, pathOut) => {
         console.log('Extraction operation complete');
         resolve();
       };
+      const isValid = (fileName) => {
+        if (/^(?:__MACOSX)|(\.DS_Store)/.test(fileName)) {
+          return false;
+        }
+        return true;
+      };
       fs.createReadStream(pathIn)
         .pipe(unzipper.Parse())
         .on('entry', (entry) => {
           const fileName = entry.path;
           const type = entry.type;
-          if (type === 'File' && !fileName.startsWith('__MACOSX')) {
-            const outFilePath = path.resolve(pathOut, fileName);
+          if (type === 'File' && isValid(fileName)) {
+            const outFilePath = path.resolve(pathOut, sanitize(fileName));
             entry.pipe(fs.createWriteStream(outFilePath));
           } else {
             entry.autodrain();
