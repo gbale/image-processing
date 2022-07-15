@@ -21,17 +21,31 @@ const unzipper = require('unzipper'),
  * @return {promise}
  */
 const unzip = (pathIn, pathOut) => {
-  stream.pipeline(
-    fs.createReadStream(pathIn),
-    unzipper.Extract({ path: pathOut }),
-    (err) => {
-      if (err) {
-        console.error(`Error: ${err.message}`);
-      } else {
-        console.log('Extraction operation complete');
-      }
+  fs.mkdir(pathOut, (err) => {
+    if (err) {
+      return console.error(err);
     }
-  );
+    return new Promise((resolve, reject) => {
+      const complete = () => {
+        console.log('Extraction operation complete');
+        resolve();
+      };
+      fs.createReadStream(pathIn)
+        .pipe(unzipper.Parse())
+        .on('entry', (entry) => {
+          const fileName = entry.path;
+          const type = entry.type;
+          if (type === 'File' && !fileName.startsWith('__MACOSX')) {
+            const outFilePath = path.resolve(pathOut, fileName);
+            entry.pipe(fs.createWriteStream(outFilePath));
+          } else {
+            entry.autodrain();
+          }
+        })
+        .on('error', reject)
+        .on('close', complete);
+    });
+  });
 };
 
 /**
