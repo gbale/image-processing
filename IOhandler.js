@@ -57,7 +57,7 @@ const unzip = (pathIn, pathOut) => {
 /**
  * Description: read all the png files from given directory and return Promise containing array of each png file path
  *
- * @param {string} path
+ * @param {string} dir
  * @return {promise}
  */
 const readDir = (dir) => {
@@ -78,11 +78,21 @@ const readDir = (dir) => {
  * Description: Read in png file by given pathIn,
  * convert to grayscale and write to given pathOut
  *
- * @param {string} filePath
- * @param {string} pathProcessed
+ * @param {string} pathIn
+ * @param {string} pathOut
  * @return {promise}
  */
-const grayScale = (pathIn, pathOut) => {};
+const grayScale = (pathIn, pathOut) => {
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(pathIn)
+      .pipe(new PNG({ filterType: 4, colorType: 4 }))
+      .on('parsed', function () {
+        this.pack().pipe(fs.createWriteStream(pathOut));
+      })
+      .on('error', reject)
+      .on('close', resolve);
+  });
+};
 
 module.exports = {
   unzip,
