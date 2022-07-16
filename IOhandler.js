@@ -65,13 +65,16 @@ const unzip = (pathIn, pathOut) => {
  */
 const readDir = (dir) => {
   return new Promise((resolve, reject) => {
-    fs.readdir(dir, { withFileTypes: true }, (err, files) => {
+    fs.readdir(dir, { withFileTypes: true }, async (err, files) => {
       if (err) {
         return reject(err);
       }
       const isPNG = (fileName) => /(?:\.png$)/i.test(fileName);
-      const list = (files || []).flatMap((dirent) =>
-        (isPNG(dirent.name)) ? [path.resolve(dir, dirent.name)] : [])
+      const list = await Promise.all(
+        (files || []).flatMap((dirent) =>
+          (isPNG(dirent.name)) ? [path.resolve(dir, dirent.name)] : []
+        )
+      );
       resolve(list);
     });
   });
