@@ -21,14 +21,17 @@ const unzipper = require('unzipper'),
  * @return {promise}
  */
 const unzip = (pathIn, pathOut) => {
-  fs.mkdir(pathOut, (err) => {
-    if (err) {
-      return console.error(err);
-    }
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
+    fs.mkdir(pathOut, (err) => {
+      if (err) {
+        if (err.code === 'EEXIST') {
+          return reject('Directory already exists: ' + pathOut);
+        }
+        return reject(err);
+      }
       const complete = () => {
         console.log('Extraction operation complete');
-        resolve();
+        resolve(pathOut);
       };
       const isValid = (fileName) => {
         if (/^(?:__MACOSX)|(\.DS_Store)/i.test(fileName)) {
@@ -64,11 +67,11 @@ const readDir = (dir) => {
   return new Promise((resolve, reject) => {
     fs.readdir(dir, { withFileTypes: true }, (err, files) => {
       if (err) {
-        console.error(err);
-        reject();
+        return reject(err);
       }
       const isPNG = (fileName) => /(?:\.png$)/i.test(fileName);
-      const list = (files || []).flatMap((dirent) => (isPNG(dirent.name)) ? [dirent.name] : [])
+      const list = (files || []).flatMap((dirent) =>
+        (isPNG(dirent.name)) ? [path.resolve(dir, dirent.name)] : [])
       resolve(list);
     });
   });
@@ -78,8 +81,8 @@ const readDir = (dir) => {
  * Description: Read in png file by given pathIn,
  * convert to grayscale and write to given pathOut
  *
- * @param {string} pathIn
- * @param {string} pathOut
+ * @param {string} pathIn Input path including file name
+ * @param {string} pathOut Output directory path
  * @return {promise}
  */
 const grayScale = (pathIn, pathOut) => {
@@ -87,7 +90,8 @@ const grayScale = (pathIn, pathOut) => {
     fs.createReadStream(pathIn)
       .pipe(new PNG({ filterType: 4, colorType: 4 }))
       .on('parsed', function () {
-        this.pack().pipe(fs.createWriteStream(pathOut));
+        const outFilePath = path.resolve(pathOut, path.basename(pathIn));
+        this.pack().pipe(fs.createWriteStream(outFilePath));
       })
       .on('error', reject)
       .on('close', resolve);
