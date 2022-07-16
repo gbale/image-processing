@@ -10,7 +10,7 @@
 const unzipper = require('unzipper'),
   fs = require('fs'),
   PNG = require('pngjs').PNG,
-  path = require('path')
+  path = require('path'),
   sanitize = require('sanitize-filename');
 
 /**
@@ -31,7 +31,7 @@ const unzip = (pathIn, pathOut) => {
         resolve();
       };
       const isValid = (fileName) => {
-        if (/^(?:__MACOSX)|(\.DS_Store)/.test(fileName)) {
+        if (/^(?:__MACOSX)|(\.DS_Store)/i.test(fileName)) {
           return false;
         }
         return true;
@@ -60,7 +60,19 @@ const unzip = (pathIn, pathOut) => {
  * @param {string} path
  * @return {promise}
  */
-const readDir = (dir) => {};
+const readDir = (dir) => {
+  return new Promise((resolve, reject) => {
+    fs.readdir(dir, { withFileTypes: true }, (err, files) => {
+      if (err) {
+        console.error(err);
+        reject();
+      }
+      const isPNG = (fileName) => /(?:\.png$)/i.test(fileName);
+      const list = (files || []).flatMap((dirent) => (isPNG(dirent.name)) ? [dirent.name] : [])
+      resolve(list);
+    });
+  });
+};
 
 /**
  * Description: Read in png file by given pathIn,
